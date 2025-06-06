@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat nội bộ</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+  <style>
+    /* CSS như bạn gửi trước đó */
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #ecf0f1;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background-color: #3498db;
+      color: white;
+      padding: 15px 20px;
+      font-size: 1.2em;
+    }
+    #messages {
+      padding: 20px;
+      height: 500px;
+      overflow-y: auto;
+      background-color: #f7f9fa;
+    }
+    .message {
+      background: #eaf2f8;
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      border-radius: 6px;
+      border-left: 4px solid #3498db;
+    }
+    .message strong {
+      color: #2c3e50;
+    }
+    .message img {
+      margin-top: 10px;
+      max-width: 200px;
+      border-radius: 5px;
+    }
+    .message a {
+      display: inline-block;
+      margin-top: 10px;
+      color: #2980b9;
+      text-decoration: none;
+    }
+    form#chat-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px;
+      background: #f1f1f1;
+      border-top: 1px solid #ccc;
+    }
+    form input[type="text"],
+    form input[type="file"] {
+      padding: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 100%;
+    }
+    form button {
+      background-color: #2ecc71;
+      border: none;
+      color: white;
+      padding: 10px;
+      font-size: 1em;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #27ae60;
+    }
+    @media (max-width: 600px) {
+      .container {
+        margin: 10px;
+      }
+      #messages {
+        height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">Chào {{ username }}</div>
+
+    <div id="messages"></div>
+
+    <form id="chat-form">
+      <input type="text" id="message" placeholder="Nhập tin nhắn..." autocomplete="off" />
+      <label>Gửi ảnh:</label>
+      <input type="file" id="image" accept="image/*" />
+      <label>Gửi file:</label>
+      <input type="file" id="file" />
+      <button type="submit">Gửi</button>
+    </form>
+  </div>
+
+  <script>
+    const socket = io();
+    const form = document.getElementById('chat-form');
+    const msgEl = document.getElementById('messages');
+    const username = "{{ username }}";  // Lấy username truyền từ Flask
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const message = document.getElementById('message').value.trim();
+      const image = document.getElementById('image').files[0];
+      const file = document.getElementById('file').files[0];
+
+      if (!message && !image && !file) return;  // Không gửi nếu không có gì
+
+      const data = { user: username, message };
+
+      if (image) {
+        const imgBase64 = await toBase64(image);
+        data.image = { filename: image.name, data: imgBase64 };
+      }
+
+      if (file) {
+        const fileBase64 = await toBase64(file);
+        data.file = { filename: file.name, data: fileBase64 };
+      }
+
+      socket.emit('send_message', data);
+      form.reset();
+    });
+
+    socket.on('receive_message', data => {
+      const div = document.createElement('div');
+      div.classList.add('message');
+      div.innerHTML = `<strong>${escapeHtml(data.user)}</strong>: ${escapeHtml(data.message)}<br>
+        ${data.image ? `<img src="${data.image}" alt="ảnh">` : ''}
+        ${data.file ? `<br><a href="${data.file}" download>Tải file</a>{{file_name}}` : ''}`;
+      msgEl.appendChild(div);
+      msgEl.scrollTop = msgEl.scrollHeight;
+    });
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Hàm để tránh XSS cơ bản
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[m];
+      });
+    }
+  </script>
+</body>
+</html>
