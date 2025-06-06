@@ -11,6 +11,7 @@
       height: 100vh;
       justify-content: center;
       align-items: center;
+      margin: 0;
     }
     .register-box {
       background: white;
@@ -19,7 +20,12 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       width: 320px;
     }
+    .register-box h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
     input {
+      box-sizing: border-box; /* Quan trọng để padding không làm tăng width */
       width: 100%;
       padding: 10px;
       margin-top: 10px;
@@ -40,8 +46,13 @@
       background-color: #2980b9;
     }
     .flash {
-      color: red;
-      margin-top: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      color: #721c24;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      text-align: center;
     }
     a {
       display: block;
@@ -53,23 +64,48 @@
     a:hover {
       text-decoration: underline;
     }
+    #password-error {
+      color: red;
+      font-size: 0.9em;
+      margin-top: 5px;
+      display: none; /* Ẩn mặc định */
+    }
   </style>
 </head>
 <body>
   <div class="register-box">
     <h2>Đăng ký tài khoản</h2>
-    <form method="POST">
-      <input name="username" placeholder="Tên đăng nhập" required />
-      <input type="password" name="password" placeholder="Mật khẩu" required />
-      <input type="password" name="confirm_password" placeholder="Xác nhận mật khẩu" required />
-      <button type="submit">Đăng ký</button>
-    </form>
-    <a href="{{ url_for('login') }}">Quay lại đăng nhập</a>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="flash">{{ messages[0] }}</div>
       {% endif %}
     {% endwith %}
+
+    <form id="register-form" method="POST" onsubmit="return validateForm()">
+      <input name="username" placeholder="Tên đăng nhập" required />
+      <input type="password" id="password" name="password" placeholder="Mật khẩu" required />
+      <input type="password" id="confirm_password" name="confirm_password" placeholder="Xác nhận mật khẩu" required />
+      <div id="password-error">Mật khẩu xác nhận không khớp!</div>
+      <button type="submit">Đăng ký</button>
+    </form>
+    <a href="{{ url_for('login') }}">Quay lại đăng nhập</a>
   </div>
+
+  <script>
+    function validateForm() {
+      const password = document.getElementById('password').value;
+      const confirm_password = document.getElementById('confirm_password').value;
+      const errorDiv = document.getElementById('password-error');
+
+      if (password !== confirm_password) {
+        errorDiv.style.display = 'block'; // Hiện thông báo lỗi
+        return false; // Ngăn không cho form được gửi đi
+      } else {
+        errorDiv.style.display = 'none'; // Ẩn thông báo lỗi nếu khớp
+        return true; // Cho phép gửi form
+      }
+    }
+  </script>
 </body>
 </html>

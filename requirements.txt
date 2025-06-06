@@ -1,0 +1,6 @@
+Flask
+Flask-SocketIO
+Werkzeug
+google-generativeai
+python-dotenv
+requests

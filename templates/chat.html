@@ -6,7 +6,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
   <style>
-    /* CSS như bạn gửi trước đó */
     body {
       font-family: 'Roboto', sans-serif;
       background: #ecf0f1;
@@ -20,6 +19,9 @@
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 80px);
     }
     .header {
       background-color: #3498db;
@@ -27,11 +29,18 @@
       padding: 15px 20px;
       font-size: 1.2em;
     }
+    .header a {
+      color: white;
+      text-decoration: none;
+    }
+    .header a:hover {
+      text-decoration: underline;
+    }
     #messages {
       padding: 20px;
-      height: 500px;
       overflow-y: auto;
       background-color: #f7f9fa;
+      flex-grow: 1;
     }
     .message {
       background: #eaf2f8;
@@ -39,20 +48,16 @@
       padding: 10px 15px;
       border-radius: 6px;
       border-left: 4px solid #3498db;
+      word-wrap: break-word;
     }
     .message strong {
       color: #2c3e50;
     }
     .message img {
       margin-top: 10px;
-      max-width: 200px;
+      max-width: 250px;
       border-radius: 5px;
-    }
-    .message a {
-      display: inline-block;
-      margin-top: 10px;
-      color: #2980b9;
-      text-decoration: none;
+      display: block;
     }
     form#chat-form {
       display: flex;
@@ -62,8 +67,9 @@
       background: #f1f1f1;
       border-top: 1px solid #ccc;
     }
-    form input[type="text"],
-    form input[type="file"] {
+    form input,
+    form button {
+      box-sizing: border-box;
       padding: 10px;
       font-size: 1em;
       border-radius: 5px;
@@ -74,20 +80,33 @@
       background-color: #2ecc71;
       border: none;
       color: white;
-      padding: 10px;
-      font-size: 1em;
-      border-radius: 5px;
       cursor: pointer;
     }
     form button:hover {
       background-color: #27ae60;
     }
+    .file-attachment {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #e9ecef;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      text-decoration: none;
+      color: #007bff;
+    }
+    .file-attachment:hover {
+      background-color: #dee2e6;
+      color: #0056b3;
+    }
     @media (max-width: 600px) {
       .container {
-        margin: 10px;
+        margin: 0;
+        height: 100vh;
+        border-radius: 0;
       }
       #messages {
-        height: 400px;
+        height: auto;
       }
     }
   </style>
@@ -95,16 +114,36 @@
 <body>
 
   <div class="container">
-    <div class="header">Chào {{ username }}</div>
+    <div class="header">
+        Chào {{ username }}
+        {% if session.get('role') == 'quanly' %}
+            | <a href="{{ url_for('admin') }}">Trang Admin</a>
+        {% endif %}
+        - <a href="{{ url_for('logout') }}">Đăng xuất</a>
+    </div>
 
-    <div id="messages"></div>
+    <div id="messages">
+      {% for msg in messages %}
+        <div class="message">
+          <strong>{{ msg.username }}</strong>
+          {% if msg.message %}: {{ msg.message }}{% endif %}
+          {% if msg.image_path %}
+            <br><img src="{{ msg.image_path }}" alt="ảnh">
+          {% endif %}
+          {% if msg.file_path %}
+            {# Cố gắng tách tên file gốc từ đường dẫn đã lưu #}
+            <br><a href="{{ msg.file_path }}" class="file-attachment" download>Tải xuống: {{ msg.file_path.split('_')[-1] }}</a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
 
     <form id="chat-form">
       <input type="text" id="message" placeholder="Nhập tin nhắn..." autocomplete="off" />
-      <label>Gửi ảnh:</label>
-      <input type="file" id="image" accept="image/*" />
-      <label>Gửi file:</label>
-      <input type="file" id="file" />
+      <label for="image">Gửi ảnh:</label>
+      <input type="file" id="image" name="image" accept="image/*" />
+      <label for="file">Gửi file:</label>
+      <input type="file" id="file" name="file" />
       <button type="submit">Gửi</button>
     </form>
   </div>
@@ -113,26 +152,29 @@
     const socket = io();
     const form = document.getElementById('chat-form');
     const msgEl = document.getElementById('messages');
-    const username = "{{ username }}";  // Lấy username truyền từ Flask
+    const username = "{{ username }}";
+
+    // Tự động cuộn xuống tin nhắn cuối cùng khi tải trang
+    msgEl.scrollTop = msgEl.scrollHeight;
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const message = document.getElementById('message').value.trim();
-      const image = document.getElementById('image').files[0];
-      const file = document.getElementById('file').files[0];
+      const imageFile = document.getElementById('image').files[0];
+      const otherFile = document.getElementById('file').files[0];
 
-      if (!message && !image && !file) return;  // Không gửi nếu không có gì
+      if (!message && !imageFile && !otherFile) return;
 
       const data = { user: username, message };
 
-      if (image) {
-        const imgBase64 = await toBase64(image);
-        data.image = { filename: image.name, data: imgBase64 };
+      if (imageFile) {
+        const imgBase64 = await toBase64(imageFile);
+        data.image = { filename: imageFile.name, data: imgBase64 };
       }
 
-      if (file) {
-        const fileBase64 = await toBase64(file);
-        data.file = { filename: file.name, data: fileBase64 };
+      if (otherFile) {
+        const fileBase64 = await toBase64(otherFile);
+        data.file = { filename: otherFile.name, data: fileBase64 };
       }
 
       socket.emit('send_message', data);
@@ -142,10 +184,28 @@
     socket.on('receive_message', data => {
       const div = document.createElement('div');
       div.classList.add('message');
-      div.innerHTML = `<strong>${escapeHtml(data.user)}</strong>: ${escapeHtml(data.message)}<br>
-        ${data.image ? `<img src="${data.image}" alt="ảnh">` : ''}
-        ${data.file ? `<br><a href="${data.file}" download>Tải file</a>{{file_name}}` : ''}`;
+
+      // Chỉ hiển thị dấu ":" và tin nhắn nếu có nội dung
+      let messageContent = `<strong>${escapeHtml(data.user)}</strong>`;
+      if (data.message) {
+        messageContent += `: ${escapeHtml(data.message)}`;
+      }
+      
+      // Hiển thị ảnh nếu có
+      if (data.image) {
+        messageContent += `<br><img src="${data.image}" alt="ảnh">`;
+      }
+
+      // Hiển thị file đính kèm nếu có
+      if (data.file_info && data.file_info.url) {
+        messageContent += `<br><a href="${data.file_info.url}" class="file-attachment" download="${escapeHtml(data.file_info.name)}">
+          Tải xuống: ${escapeHtml(data.file_info.name)}
+        </a>`;
+      }
+      
+      div.innerHTML = messageContent;
       msgEl.appendChild(div);
+      // Cuộn xuống tin nhắn mới nhất
       msgEl.scrollTop = msgEl.scrollHeight;
     });
 
@@ -161,15 +221,14 @@
     // Hàm để tránh XSS cơ bản
     function escapeHtml(text) {
       if (!text) return '';
-      return text.replace(/[&<>"']/g, function(m) {
-        return {
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;'
-        }[m];
-      });
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
     }
   </script>
 </body>
