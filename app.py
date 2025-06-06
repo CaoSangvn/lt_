@@ -12,8 +12,6 @@ import requests
 
 # --- TẢI VÀ CẤU HÌNH CÁC DỊCH VỤ ---
 load_dotenv()
-
-# Cấu hình AI
 try:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -26,12 +24,9 @@ try:
 except Exception as e:
     print(f"❌ Lỗi khởi tạo mô hình AI: {e}")
     ai_model = None
-
-# Lấy API key thời tiết
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
 app = Flask(__name__)
-# ... (Phần còn lại của cấu hình và các hàm không đổi giữ nguyên) ...
 app.secret_key = 'your_secret_key'
 socketio = SocketIO(app)
 IMAGE_FOLDER, FILE_FOLDER = 'static/image/uploads', 'static/files/uploads'
@@ -58,6 +53,17 @@ def admin_required(f):
             return redirect(url_for('chat'))
         return f(*args, **kwargs)
     return decorated_function
+def process_messages_timestamps(raw_messages):
+    messages = []
+    for msg in raw_messages:
+        msg_dict = dict(msg)
+        if msg_dict.get('timestamp'):
+            try:
+                msg_dict['timestamp'] = datetime.strptime(msg_dict['timestamp'], '%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                msg_dict['timestamp'] = None
+        messages.append(msg_dict)
+    return messages
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -94,62 +100,72 @@ def login():
 def admin(): return render_template('admin.html', users=get_db().execute('SELECT id, username, role FROM users ORDER BY id').fetchall())
 @app.route('/admin/history')
 @admin_required
-def chat_history(): return render_template('chat_history.html', messages=get_db().execute('SELECT * FROM chat ORDER BY timestamp DESC').fetchall())
+def chat_history():
+    return render_template('chat_history.html', messages=process_messages_timestamps(get_db().execute('SELECT * FROM chat ORDER BY timestamp DESC').fetchall()))
+@app.route('/admin/clear_history', methods=['POST'])
+@admin_required
+def clear_chat_history():
+    try:
+        db = get_db()
+        db.execute('DELETE FROM chat')
+        db.commit()
+        flash('Toàn bộ lịch sử trò chuyện đã được xóa thành công!', 'success')
+    except sqlite3.Error as e:
+        flash(f'Đã có lỗi xảy ra khi xóa lịch sử: {e}', 'error')
+    return redirect(url_for('chat_history'))
+@app.route('/admin/announce', methods=['POST'])
+@admin_required
+def send_announcement():
+    content = request.form.get('content')
+    admin_username = session.get('username')
+    if not content or not content.strip():
+        flash('Nội dung thông báo không được để trống.', 'error')
+        return redirect(url_for('admin'))
+    db = get_db()
+    db.execute('INSERT INTO announcements (content, admin_username) VALUES (?, ?)', (content, admin_username))
+    db.commit()
+    # SỬA LỖI Ở ĐÂY
+    socketio.emit('new_announcement', {'content': content, 'admin': admin_username})
+    flash('Thông báo đã được gửi thành công!', 'success')
+    return redirect(url_for('admin'))
 @app.route('/chat')
 def chat():
     if 'username' not in session: return redirect(url_for('login'))
-    return render_template('chat.html', username=session['username'], messages=get_db().execute('SELECT * FROM chat ORDER BY timestamp ASC').fetchall())
+    db = get_db()
+    latest_announcement = db.execute('SELECT * FROM announcements ORDER BY created_at DESC LIMIT 1').fetchone()
+    return render_template('chat.html', username=session['username'], messages=process_messages_timestamps(db.execute('SELECT * FROM chat ORDER BY timestamp ASC').fetchall()), announcement=latest_announcement)
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
-
-# --- CÁC HÀM TRỢ GIÚP ---
-
 def extract_city_from_prompt(prompt):
-    """Trích xuất tên thành phố từ câu hỏi của người dùng."""
     words = prompt.split()
-    # Tìm các từ được viết hoa, thường là tên riêng
-    capitalized_words = [word for word in words if word.istitle() and word.lower() != 'thời' and word.lower() != 'tiết']
-    if capitalized_words:
-        return " ".join(capitalized_words)
-    return None # Trả về None nếu không tìm thấy
-
+    capitalized_words = [word for word in words if word.istitle() and word.lower() not in ['thời', 'tiết']]
+    return " ".join(capitalized_words) if capitalized_words else None
 def get_current_weather(city="Hanoi"):
-    """Hàm lấy dữ liệu thời tiết từ OpenWeatherMap."""
-    if not WEATHER_API_KEY:
-        return "Lỗi: Chưa cấu hình API key cho dịch vụ thời tiết."
-    
+    if not WEATHER_API_KEY: return "Lỗi: Chưa cấu hình API key cho dịch vụ thời tiết."
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric&lang=vi"
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
-        description = data['weather'][0]['description']
-        temp = data['main']['temp']
-        city_name = data['name']
+        description, temp, city_name = data['weather'][0]['description'], data['main']['temp'], data['name']
         return f"Thời tiết tại {city_name} hiện tại: {temp}°C, {description}."
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
-            return f"Xin lỗi, tôi không tìm thấy thông tin cho thành phố '{city}'."
+        if e.response.status_code == 404: return f"Xin lỗi, tôi không tìm thấy thông tin cho thành phố '{city}'."
         print(f"Lỗi HTTP khi gọi API thời tiết: {e}")
         return "Xin lỗi, tôi không thể lấy dữ liệu thời tiết lúc này."
     except requests.exceptions.RequestException as e:
         print(f"Lỗi kết nối khi gọi API thời tiết: {e}")
         return "Xin lỗi, tôi không thể lấy dữ liệu thời tiết lúc này."
-
 def get_ai_response(prompt):
-    """Gửi yêu cầu đến AI và nhận câu trả lời."""
-    if not ai_model:
-        return "Lỗi: Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra lại API key."
+    if not ai_model: return "Lỗi: Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra lại API key."
     try:
         response = ai_model.generate_content(prompt)
-        cleaned_text = response.text.replace('*', '').strip()
-        return cleaned_text
+        return response.text.replace('*', '').strip()
     except Exception as e:
         print(f"Lỗi khi gọi API của AI: {e}")
         return "Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn."
-
 def _save_file(file_data, upload_folder, allowed_extensions_func):
     if not file_data: return None, None
     original_filename = file_data['filename']
@@ -162,32 +178,25 @@ def _save_file(file_data, upload_folder, allowed_extensions_func):
     except Exception as e:
         print(f"Lỗi khi lưu file: {e}")
         return None, None
-
-# --- CẬP NHẬT LOGIC SOCKET.IO ---
 @socketio.on('send_message')
 def handle_send_message(data):
     username = session.get('username', 'Ẩn danh')
     message = data.get('message', '').strip()
-    
-    # Gửi và lưu tin nhắn gốc của người dùng
     image_url, _ = _save_file(data.get('image'), app.config['UPLOAD_IMAGE_FOLDER'], allowed_image)
     file_url, original_filename = _save_file(data.get('file'), app.config['UPLOAD_FILE_FOLDER'], allowed_file)
     db = get_db()
     db.execute('INSERT INTO chat (username, message, image_path, file_path) VALUES (?, ?, ?, ?)',
                (username, message, image_url, file_url))
     db.commit()
-    emit('receive_message', {'user': username, 'message': message, 'image': image_url, 'file_info': {'url': file_url, 'name': original_filename} if file_url else None}, broadcast=True)
-
-    # Xử lý logic cho Bot
+    timestamp_str = datetime.now().strftime('%H:%M, %d/%m/%Y')
+    # SỬA LỖI Ở ĐÂY
+    socketio.emit('receive_message', {'user': username, 'message': message, 'image': image_url, 'file_info': {'url': file_url, 'name': original_filename} if file_url else None, 'timestamp': timestamp_str})
     if message.lower().startswith('@bot'):
         prompt = message[4:].strip()
         bot_response_text = ""
-        
-        socketio.emit('receive_message', {'user': 'Bot', 'message': 'Đang suy nghĩ...'})
-
-        # Kiểm tra intent của người dùng
+        socketio.emit('receive_message', {'user': 'Bot', 'message': 'Đang suy nghĩ...', 'timestamp': datetime.now().strftime('%H:%M, %d/%m/%Y')})
         if 'thời tiết' in prompt.lower():
-            city = extract_city_from_prompt(prompt) or "Hanoi" # Trích xuất thành phố, nếu không có thì mặc định là Hanoi
+            city = extract_city_from_prompt(prompt) or "Hanoi"
             weather_data = get_current_weather(city)
             final_prompt = f"Dựa vào thông tin sau: '{weather_data}', hãy trả lời câu hỏi của người dùng một cách thân thiện và ngắn gọn."
             bot_response_text = get_ai_response(final_prompt)
@@ -195,12 +204,8 @@ def handle_send_message(data):
              bot_response_text = "Bạn muốn hỏi tôi điều gì?"
         else:
             bot_response_text = get_ai_response(prompt)
-        
-        # Gửi câu trả lời của Bot
         db.execute('INSERT INTO chat (username, message) VALUES (?, ?)', ('Bot', bot_response_text))
         db.commit()
-        socketio.emit('receive_message', {'user': 'Bot', 'message': bot_response_text})
-
-# --- KHỞI CHẠY ỨNG DỤNG ---
+        socketio.emit('receive_message', {'user': 'Bot', 'message': bot_response_text, 'timestamp': datetime.now().strftime('%H:%M, %d/%m/%Y')})
 if __name__ == '__main__':
     socketio.run(app, debug=True)

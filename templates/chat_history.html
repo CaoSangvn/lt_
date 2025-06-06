@@ -7,14 +7,21 @@
     <style>
         body { font-family: 'Roboto', sans-serif; background: #f4f4f4; margin: 20px; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
+        h1, h2 { color: #333; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; word-wrap: break-word; }
         th { background-color: #2980b9; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
         .nav { margin-bottom: 20px; }
-        .nav a { text-decoration: none; padding: 8px 15px; background: #3498db; color: white; border-radius: 5px; margin-right: 10px;}
+        .nav a, .actions button { text-decoration: none; padding: 8px 15px; color: white; border-radius: 5px; margin-right: 10px; border: none; cursor: pointer;}
+        .nav a { background: #3498db; }
         .nav a:hover { background: #2980b9; }
+        .actions { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        .actions button { background-color: #e74c3c; }
+        .actions button:hover { background-color: #c0392b; }
+        .flash { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+        .flash.success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .flash.error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
         img.thumbnail { max-width: 100px; max-height: 100px; border-radius: 4px; }
     </style>
 </head>
@@ -26,7 +33,20 @@
             <a href="{{ url_for('chat') }}">Vào Chat</a>
             <a href="{{ url_for('logout') }}">Đăng xuất</a>
         </div>
-        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        <div class="actions">
+            <form action="{{ url_for('clear_chat_history') }}" method="POST">
+                <button type="submit" onclick="return confirm('Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử trò chuyện không? Hành động này KHÔNG THỂ hoàn tác.');">
+                    Xóa Toàn Bộ Lịch Sử Chat
+                </button>
+            </form>
+        </div>
         <table>
             <thead>
                 <tr>
@@ -39,24 +59,16 @@
             <tbody>
                 {% for msg in messages %}
                 <tr>
-                    <td>{{ msg.timestamp }}</td>
+                    <td>{{ msg.timestamp.strftime('%H:%M:%S %d-%m-%Y') if msg.timestamp else '' }}</td>
                     <td>{{ msg.username }}</td>
                     <td>{{ msg.message }}</td>
                     <td>
-                        {% if msg.image_path %}
-                            <a href="{{ msg.image_path }}" target="_blank">
-                                <img src="{{ msg.image_path }}" alt="ảnh" class="thumbnail">
-                            </a>
-                        {% endif %}
-                        {% if msg.file_path %}
-                            <a href="{{ msg.file_path }}" download>Tải file</a>
-                        {% endif %}
+                        {% if msg.image_path %}<a href="{{ msg.image_path }}" target="_blank"><img src="{{ msg.image_path }}" alt="ảnh" class="thumbnail"></a>{% endif %}
+                        {% if msg.file_path %}<a href="{{ msg.file_path }}" download>Tải file</a>{% endif %}
                     </td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="4" style="text-align: center;">Chưa có tin nhắn nào.</td>
-                </tr>
+                <tr><td colspan="4" style="text-align: center;">Chưa có tin nhắn nào.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

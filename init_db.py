@@ -3,6 +3,7 @@ import sqlite3
 conn = sqlite3.connect('chat.db')
 cursor = conn.cursor()
 
+# Bảng người dùng
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
 )
 ''')
 
+# Bảng chat
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,6 +25,16 @@ CREATE TABLE IF NOT EXISTS chat (
 )
 ''')
 
+# Bảng thông báo (quan trọng)
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    admin_username TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+''')
+
 conn.commit()
 conn.close()
-print("✅ Cơ sở dữ liệu đã được tạo")
+print("✅ Cơ sở dữ liệu đã được tạo với bảng announcements.")

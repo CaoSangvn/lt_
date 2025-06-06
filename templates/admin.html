@@ -7,14 +7,20 @@
     <style>
         body { font-family: 'Roboto', sans-serif; background: #f4f4f4; margin: 20px; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #3498db; color: white; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
+        h1, h2 { color: #333; }
         .nav { margin-bottom: 20px; }
         .nav a { text-decoration: none; padding: 8px 15px; background: #3498db; color: white; border-radius: 5px; margin-right: 10px;}
         .nav a:hover { background: #2980b9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #3498db; color: white; }
+        .announcement-form { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .announcement-form textarea { width: 100%; box-sizing: border-box; padding: 10px; font-family: 'Roboto', sans-serif; font-size: 1em; border-radius: 5px; border: 1px solid #ccc; }
+        .announcement-form button { margin-top: 10px; padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .announcement-form button:hover { background: #229954; }
+        .flash { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+        .flash.success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .flash.error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
     </style>
 </head>
 <body>
@@ -26,22 +32,29 @@
             <a href="{{ url_for('logout') }}">Đăng xuất</a>
         </div>
         
-        <h2>Danh sách người dùng</h2>
+        <div class="announcement-form">
+            <h2>Gửi thông báo chung</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+            <form action="{{ url_for('send_announcement') }}" method="POST">
+                <textarea name="content" rows="4" placeholder="Nhập nội dung thông báo ở đây..." required></textarea>
+                <button type="submit">Gửi Thông Báo</button>
+            </form>
+        </div>
+
+        <h2 style="margin-top: 40px;">Danh sách người dùng</h2>
         <table>
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Username</th>
-                    <th>Vai trò</th>
-                </tr>
+                <tr><th>ID</th><th>Username</th><th>Vai trò</th></tr>
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr>
-                    <td>{{ user.id }}</td>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.role }}</td>
-                </tr>
+                <tr><td>{{ user.id }}</td><td>{{ user.username }}</td><td>{{ user.role }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>
