@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Chat nội bộ</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
@@ -10,7 +11,7 @@
     #announcement-banner {
         background-color: #fff3cd; color: #856404; padding: 15px;
         text-align: center; border-bottom: 1px solid #ffeeba;
-        display: none; /* Mặc định ẩn */
+        display: none;
         position: relative;
     }
     #announcement-banner .close-btn {
@@ -37,13 +38,56 @@
     .message.sent .timestamp { color: #e1f5fe; }
     .message p { margin: 0; }
     .message img { margin-top: 10px; max-width: 100%; border-radius: 10px; display: block; }
-    form#chat-form { display: flex; gap: 10px; padding: 15px; background: #fff; border-top: 1px solid #e1e1e1; align-items: center;}
-    #message { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px 15px; }
-    #message:focus { outline: none; border-color: #007bff; }
-    form button { background-color: #007bff; border: none; color: white; cursor: pointer; padding: 10px 15px; border-radius: 20px; font-weight: bold; }
-    form button:hover { background-color: #0056b3; }
-    .file-inputs { display: flex; gap: 10px; }
     .file-attachment { display: inline-block; margin-top: 10px; padding: 8px 12px; background-color: #e9ecef; border: 1px solid #ced4da; border-radius: 5px; text-decoration: none; color: #007bff; }
+
+    form#chat-form { display: flex; gap: 5px; padding: 10px; background: #fff; border-top: 1px solid #e1e1e1; align-items: center;}
+    #message { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px 15px; font-size: 16px; } /* Tăng font-size cho dễ nhập liệu */
+    #message:focus { outline: none; border-color: #007bff; }
+    
+    input[type="file"] { display: none; }
+
+    .file-label, form#chat-form button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+        flex-shrink: 0;
+        transition: background-color 0.2s;
+    }
+
+    .file-label {
+        background-color: #f1f1f1;
+        border: 1px solid #ccc;
+    }
+    .file-label:hover { background-color: #e1e1e1; }
+
+    form#chat-form button {
+        background-color: #007bff;
+        border: none;
+        color: white;
+        font-weight: bold;
+    }
+    form#chat-form button:hover { background-color: #0056b3; }
+
+    @media (max-width: 768px) {
+        body {
+            background: white;
+        }
+        .container {
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        #messages {
+            padding: 10px;
+        }
+    }
   </style>
 </head>
 <body>
@@ -77,12 +121,12 @@
     </div>
     <form id="chat-form">
       <input type="text" id="message" placeholder="Nhập tin nhắn..." autocomplete="off" />
-      <div class="file-inputs">
-        <label for="image" class="file-label">Ảnh</label><input type="file" id="image" name="image" accept="image/*" title="Gửi ảnh"/>
-        <label for="file" class="file-label">File</label><input type="file" id="file" name="file" title="Gửi file"/>
-      </div>
-      <button type="submit">Gửi</button>
-    </form>
+      
+      <label for="image" title="Gửi ảnh" class="file-label">&#128443;&#xFE0F;</label> <input type="file" id="image" name="image" accept="image/*"/>
+      
+      <label for="file" title="Gửi file" class="file-label">&#128206;</label> <input type="file" id="file" name="file"/>
+      
+      <button type="submit" title="Gửi">&#10148;</button> </form>
   </div>
 
   <script>

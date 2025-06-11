@@ -2,8 +2,81 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đăng ký tài khoản</title>
-  <style>body{font-family:Arial,sans-serif;background:#f4f4f4;display:flex;height:100vh;justify-content:center;align-items:center;margin:0}.register-box{background:white;padding:30px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,.1);width:320px}h2{text-align:center}input{box-sizing:border-box;width:100%;padding:10px;margin-top:10px;border:1px solid #ccc;border-radius:5px}button{margin-top:15px;width:100%;padding:10px;background-color:#3498db;color:white;border:none;border-radius:5px;cursor:pointer}button:hover{background-color:#2980b9}.flash{padding:10px;margin-bottom:10px;border-radius:5px;color:#721c24;background-color:#f8d7da;border:1px solid #f5c6cb;text-align:center}a{display:block;margin-top:15px;text-align:center;color:#3498db;text-decoration:none}a:hover{text-decoration:underline}#password-error{color:red;font-size:.9em;margin-top:5px;display:none}</style>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+    .register-box {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, .1);
+       /* Sửa đổi: Chuyển sang max-width để co giãn */
+      max-width: 350px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px
+    }
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 10px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer
+    }
+    button:hover {
+      background-color: #2980b9
+    }
+    .flash {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      color: #721c24;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      text-align: center
+    }
+    a {
+      display: block;
+      margin-top: 15px;
+      text-align: center;
+      color: #3498db;
+      text-decoration: none
+    }
+    a:hover {
+      text-decoration: underline
+    }
+    #password-error {
+      color: red;
+      font-size: .9em;
+      margin-top: 5px;
+      display: none
+    }
+  </style>
 </head>
 <body>
   <div class="register-box">
