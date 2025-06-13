@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    role TEXT NOT NULL
+    role TEXT NOT NULL,
+    avatar_path TEXT DEFAULT '/static/image/avatar_placeholder.png'
 )
 ''')
 
@@ -25,7 +26,7 @@ CREATE TABLE IF NOT EXISTS chat (
 )
 ''')
 
-# Bảng thông báo (quan trọng)
+# Bảng thông báo
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS announcements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,4 +38,4 @@ CREATE TABLE IF NOT EXISTS announcements (
 
 conn.commit()
 conn.close()
-print("✅ Cơ sở dữ liệu đã được tạo với bảng announcements.")
+print("✅ Cơ sở dữ liệu đã được cập nhật với cột avatar_path.")

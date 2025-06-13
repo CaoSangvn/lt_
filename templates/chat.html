@@ -7,86 +7,72 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Roboto', sans-serif; background: #ecf0f1; margin: 0; padding: 0; }
-    #announcement-banner {
-        background-color: #fff3cd; color: #856404; padding: 15px;
-        text-align: center; border-bottom: 1px solid #ffeeba;
-        display: none;
-        position: relative;
+    :root {
+        --body-bg: #f7f9fc;
+        --container-bg: #ffffff;
+        --header-bg: #4a90e2;
+        --sent-gradient: linear-gradient(135deg, #5c97e0 0%, #3a7bc8 100%);
+        --received-bg: #e9eef2;
+        --text-light: #ffffff;
+        --text-dark: #333333;
+        --text-meta: #888888;
+        --border-color: #e1e8ed;
+        --input-bg: #f1f4f7;
     }
-    #announcement-banner .close-btn {
-        position: absolute; top: 50%; right: 15px;
-        transform: translateY(-50%); font-size: 24px;
-        cursor: pointer; font-weight: bold;
-    }
-    .container { max-width: 800px; margin: 40px auto; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; height: calc(100vh - 80px); }
-    .header { background-color: #007bff; color: white; padding: 15px 20px; font-size: 1.2em; border-bottom: 1px solid #ddd; }
-    .header a { color: white; text-decoration: none; }
-    .header a:hover { text-decoration: underline; }
-    #messages { padding: 20px; overflow-y: auto; background-color: #fff; flex-grow: 1; }
-    .message-container { display: flex; margin-bottom: 15px; }
+
+    body { font-family: 'Roboto', sans-serif; background: var(--body-bg); margin: 0; padding: 0; }
+    
+    #announcement-banner { background-color: #fff3cd; color: #856404; padding: 15px; text-align: center; border-bottom: 1px solid #ffeeba; display: none; position: relative; }
+    #announcement-banner .close-btn { position: absolute; top: 50%; right: 15px; transform: translateY(-50%); font-size: 24px; cursor: pointer; font-weight: bold; }
+    .container { max-width: 800px; margin: 40px auto; background: var(--container-bg); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; height: calc(100vh - 80px); }
+    .header { background-color: var(--header-bg); color: var(--text-light); padding: 15px 25px; font-size: 1.2em; font-weight: 500; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+    .header > div { display: flex; gap: 10px; }
+    .logout-btn { color: var(--text-light); text-decoration: none; font-size: 0.8em; font-weight: normal; padding: 6px 14px; border: 1px solid var(--text-light); border-radius: 20px; transition: all 0.2s ease-in-out; }
+    .logout-btn:hover { background-color: var(--text-light); color: var(--header-bg); }
+
+    #messages { padding: 10px 20px; overflow-y: auto; background-color: var(--container-bg); flex-grow: 1; }
+    #messages::-webkit-scrollbar { width: 8px; }
+    #messages::-webkit-scrollbar-track { background: var(--body-bg); }
+    #messages::-webkit-scrollbar-thumb { background-color: #cdd2d9; border-radius: 10px; border: 2px solid var(--body-bg); }
+
+    .message-container { display: flex; margin-bottom: 2px; position: relative; }
     .message-container.sent { justify-content: flex-end; }
-    .message-container.received { justify-content: flex-start; }
-    .message { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; position: relative; }
-    .message.sent { background-color: #007bff; color: white; border-radius: 18px 18px 5px 18px; }
-    .message.sent strong { color: #f1f1f1; }
-    .message.received { background-color: #f1f1f1; color: #333; border: 1px solid #e1e1e1; border-radius: 18px 18px 18px 5px; }
-    .message.received strong { color: #007bff; }
-    .message-header { margin-bottom: 5px; }
-    .message-header strong { font-size: 0.9em; }
-    .message-header .timestamp { font-size: 0.75em; color: #a1a1a1; margin-left: 8px; }
-    .message.sent .timestamp { color: #e1f5fe; }
+    .message-container.received { justify-content: flex-start; align-items: flex-end; }
+    .message-wrapper { display: flex; flex-direction: column; max-width: 75%; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; margin-right: 12px; transition: visibility 0s 0.2s; }
+
+    @keyframes message-in {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .message { padding: 12px 18px; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.08); line-height: 1.5; animation: message-in 0.3s ease-out; transition: border-radius 0.2s ease-out; }
+    .message.sent { background: var(--sent-gradient); color: var(--text-light); border-radius: 20px 20px 5px 20px; }
+    .message.received { background-color: var(--received-bg); color: var(--text-dark); border-radius: 20px 20px 20px 5px; }
+    
+    .message-header { margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+    .message-header strong { font-size: 0.9em; margin-right: 10px; color: var(--header-bg); }
+    .message-header .timestamp { font-size: 0.75em; color: var(--text-meta); }
+    .message.sent .timestamp { color: rgba(255, 255, 255, 0.7); }
+    
     .message p { margin: 0; }
     .message img { margin-top: 10px; max-width: 100%; border-radius: 10px; display: block; }
-    .file-attachment { display: inline-block; margin-top: 10px; padding: 8px 12px; background-color: #e9ecef; border: 1px solid #ced4da; border-radius: 5px; text-decoration: none; color: #007bff; }
+    .file-attachment { display: inline-block; margin-top: 10px; padding: 8px 12px; border-radius: 5px; text-decoration: none; }
+    .message.sent .file-attachment { background-color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); color: var(--text-light); }
+    .message.received .file-attachment { background-color: #d1d9e0; border-color: #c1c8cf; color: var(--header-bg); }
 
-    form#chat-form { display: flex; gap: 5px; padding: 10px; background: #fff; border-top: 1px solid #e1e1e1; align-items: center;}
-    #message { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px 15px; font-size: 16px; } /* Tăng font-size cho dễ nhập liệu */
-    #message:focus { outline: none; border-color: #007bff; }
-    
+    form#chat-form { display: flex; gap: 10px; padding: 15px; background: var(--container-bg); border-top: 1px solid var(--border-color); align-items: center;}
+    #message { flex-grow: 1; border: none; background-color: var(--input-bg); border-radius: 20px; padding: 12px 20px; font-size: 16px; }
+    #message:focus { outline: none; box-shadow: 0 0 0 2px var(--header-bg); }
     input[type="file"] { display: none; }
-
-    .file-label, form#chat-form button {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 20px;
-        flex-shrink: 0;
-        transition: background-color 0.2s;
-    }
-
-    .file-label {
-        background-color: #f1f1f1;
-        border: 1px solid #ccc;
-    }
-    .file-label:hover { background-color: #e1e1e1; }
-
-    form#chat-form button {
-        background-color: #007bff;
-        border: none;
-        color: white;
-        font-weight: bold;
-    }
-    form#chat-form button:hover { background-color: #0056b3; }
+    .file-label, form#chat-form button { display: flex; justify-content: center; align-items: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 20px; flex-shrink: 0; transition: background-color 0.2s; border: none; background-color: var(--input-bg); color: #555; }
+    .file-label:hover { background-color: #dde2e7; }
+    form#chat-form button { background-color: var(--header-bg); color: var(--text-light); font-weight: bold; }
+    form#chat-form button:hover { background-color: #3a7bc8; }
 
     @media (max-width: 768px) {
-        body {
-            background: white;
-        }
-        .container {
-            width: 100%;
-            height: 100vh;
-            margin: 0;
-            border-radius: 0;
-            box-shadow: none;
-        }
-        #messages {
-            padding: 10px;
-        }
+        body { background: var(--container-bg); }
+        .container { width: 100%; height: 100vh; margin: 0; border-radius: 0; box-shadow: none; }
+        #messages, form#chat-form { padding: 10px; }
     }
   </style>
 </head>
@@ -102,31 +88,40 @@
 
   <div class="container">
     <div class="header">
-        Phòng Chat Chung
+        <span>Phòng Chat Chung</span>
+        <div>
+            <a href="{{ url_for('profile') }}" class="logout-btn">Tài khoản</a>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Đăng xuất</a>
+        </div>
     </div>
     <div id="messages">
       {% for msg in messages %}
         <div class="message-container {% if msg.username == username %}sent{% else %}received{% endif %}">
-            <div class="message {% if msg.username == username %}sent{% else %}received{% endif %}">
-              <div class="message-header">
-                <strong>{{ msg.username }}</strong>
-                <span class="timestamp">{{ msg.timestamp.strftime('%H:%M') if msg.timestamp else '' }}</span>
+            {% if msg.username != username %}
+            <img src="{{ msg.avatar_path }}?v={{ range(1, 1000) | random }}" alt="avt" class="avatar">
+            {% endif %}
+            <div class="message-wrapper">
+              <div class="message {% if msg.username == username %}sent{% else %}received{% endif %}">
+                <div class="message-header">
+                  {% if msg.username != username %}
+                  <strong>{{ msg.username }}</strong>
+                  {% endif %}
+                  <span class="timestamp">{{ msg.timestamp.strftime('%H:%M') if msg.timestamp else '' }}</span>
+                </div>
+                {% if msg.message %}<p>{{ msg.message }}</p>{% endif %}
+                {% if msg.image_path %}<img src="{{ msg.image_path }}" alt="ảnh">{% endif %}
+                {% if msg.file_path %}<a href="{{ msg.file_path }}" class="file-attachment" download>Tải xuống: {{ msg.file_path.split('_')[-1] }}</a>{% endif %}
               </div>
-              {% if msg.message %}<p>{{ msg.message }}</p>{% endif %}
-              {% if msg.image_path %}<img src="{{ msg.image_path }}" alt="ảnh">{% endif %}
-              {% if msg.file_path %}<a href="{{ msg.file_path }}" class="file-attachment" download>Tải xuống: {{ msg.file_path.split('_')[-1] }}</a>{% endif %}
             </div>
         </div>
       {% endfor %}
     </div>
     <form id="chat-form">
       <input type="text" id="message" placeholder="Nhập tin nhắn..." autocomplete="off" />
-      
       <label for="image" title="Gửi ảnh" class="file-label">&#128443;&#xFE0F;</label> <input type="file" id="image" name="image" accept="image/*"/>
-      
       <label for="file" title="Gửi file" class="file-label">&#128206;</label> <input type="file" id="file" name="file"/>
-      
-      <button type="submit" title="Gửi">&#10148;</button> </form>
+      <button type="submit" title="Gửi">&#10148;</button> 
+    </form>
   </div>
 
   <script>
@@ -135,38 +130,46 @@
     const msgEl = document.getElementById('messages');
     const username = "{{ username }}";
 
-    // --- TOÀN BỘ SCRIPT CẦN THIẾT ---
+    function createMessageElement(data) {
+        const isSentByMe = data.user === username;
+        const container = document.createElement('div');
+        container.className = `message-container ${isSentByMe ? 'sent' : 'received'}`;
 
-    // 1. Logic nhận tin nhắn chat thông thường
+        let messageHTML = '';
+        if (!isSentByMe) {
+            const cacheBust = new Date().getTime();
+            messageHTML += `<img src="${data.avatar_path}?v=${cacheBust}" alt="avt" class="avatar">`;
+        }
+      
+        messageHTML += `<div class="message-wrapper"><div class="message ${isSentByMe ? 'sent' : 'received'}">`;
+        messageHTML += `<div class="message-header">`;
+        if (!isSentByMe) {
+            messageHTML += `<strong>${escapeHtml(data.user)}</strong>`;
+        }
+        messageHTML += `<span class="timestamp">${data.timestamp ? data.timestamp.split(',')[0] : ''}</span></div>`;
+
+        if (data.message) messageHTML += `<p>${escapeHtml(data.message)}</p>`;
+        if (data.image) messageHTML += `<img src="${data.image}" alt="ảnh">`;
+        if (data.file_info && data.file_info.url) {
+            messageHTML += `<a href="${data.file_info.url}" class="file-attachment" download="${escapeHtml(data.file_info.name)}">Tải xuống: ${escapeHtml(data.file_info.name)}</a>`;
+        }
+        messageHTML += `</div></div>`;
+        container.innerHTML = messageHTML;
+        return container;
+    }
+
     socket.on('receive_message', data => {
-      const isSentByMe = data.user === username;
-      const messageContainer = document.createElement('div');
-      messageContainer.className = `message-container ${isSentByMe ? 'sent' : 'received'}`;
-      const messageBubble = document.createElement('div');
-      messageBubble.className = `message ${isSentByMe ? 'sent' : 'received'}`;
-      let messageContent = `
-        <div class="message-header">
-          <strong>${escapeHtml(data.user)}</strong>
-          <span class="timestamp">${data.timestamp ? data.timestamp.split(',')[0] : ''}</span>
-        </div>`;
-      if (data.message) messageContent += `<p>${escapeHtml(data.message)}</p>`;
-      if (data.image) messageContent += `<img src="${data.image}" alt="ảnh">`;
-      if (data.file_info && data.file_info.url) {
-        messageContent += `<a href="${data.file_info.url}" class="file-attachment" download="${escapeHtml(data.file_info.name)}">Tải xuống: ${escapeHtml(data.file_info.name)}</a>`;
-      }
-      messageBubble.innerHTML = messageContent;
-      messageContainer.appendChild(messageBubble);
-      msgEl.appendChild(messageContainer);
-      msgEl.scrollTop = msgEl.scrollHeight;
-      if (Notification.permission === 'granted' && !isSentByMe && document.hidden) {
-        const notification = new Notification(`Tin nhắn mới từ ${data.user}`, {
-          body: data.message || 'Đã gửi một tệp đính kèm',
-          icon: '/static/image/chat_icon.png'
-        });
-      }
+        msgEl.appendChild(createMessageElement(data));
+        msgEl.scrollTop = msgEl.scrollHeight;
+      
+        if (Notification.permission === 'granted' && data.user !== username && document.hidden) {
+            new Notification(`Tin nhắn mới từ ${data.user}`, {
+                body: data.message || 'Đã gửi một tệp đính kèm',
+                icon: data.avatar_path
+            });
+        }
     });
 
-    // 2. Logic nhận thông báo từ Admin (MỚI)
     socket.on('new_announcement', function(data) {
         const banner = document.getElementById('announcement-banner');
         const content = document.getElementById('announcement-content');
@@ -174,7 +177,6 @@
         banner.style.display = 'block';
     });
 
-    // 3. Logic gửi form
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const message = document.getElementById('message').value.trim();
@@ -188,7 +190,6 @@
       form.reset();
     });
 
-    // 4. Logic chạy khi tải trang (MỚI)
     document.addEventListener('DOMContentLoaded', function() {
         msgEl.scrollTop = msgEl.scrollHeight;
         const banner = document.getElementById('announcement-banner');
@@ -199,7 +200,6 @@
         requestNotificationPermission();
     });
 
-    // 5. Các hàm trợ giúp
     function requestNotificationPermission() {
       if ("Notification" in window && Notification.permission !== "denied") {
         Notification.requestPermission();
